@@ -29,6 +29,15 @@ app.post('/todos', (req, res) => {
   });
 });
 
+
+app.get('/todos', (req, res) => {
+  Todo.find().then((todos) => {
+      res.send({todos});
+    }, (e) => {       /* In the error handler, send back a status of 400 and the error */
+      res.status(400).send(e);
+  }); /* end then */
+}); /* end app.get */
+
 app.listen(3000, () => {
   console.log('Express Started on port 3000');
 });
