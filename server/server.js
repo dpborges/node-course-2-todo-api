@@ -1,19 +1,19 @@
 var express = require('express');
 var bodyParser = require('body-parser');
-
+var {ObjectID} = require('mongodb');
+var _ = require('lodash');
 
 var {mongoose} = require('./db/mongoose');
-var {ObjectID} = require('mongodb');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
 
 
 var app = express();
+// process.env.PORT is for Heroku. If not set, default to 3000
+const port = process.env.PORT || 3000;
 
 // Configure middleware
 app.use(bodyParser.json());
-
-// Define routes below
 
 // Route  to create a todo item
 app.post('/todos', (req, res) => {
@@ -71,14 +71,38 @@ app.get('/users/:id', (req, res) => {
         return res.status(404).send();
       }
       res.send({todo});
+    }).catch((e) => {
+      res.status(400).send();
+    });
+});
+
+// Route to check user email and password
+app.post('/users', (req, res) => {
+  // pick off email and password from request
+  var body = _.pick(req.body, ['email', 'password']);
+  // create new user object
+  var user = new User(body);
+
+  //save user in database, then generateAuthToken, then send token back in response header
+  user.save().then(() => {
+    return user.generateAuthToken();
+  }).then((token) => {
+    /* for some reason the promise passed me a token wiht the entire user schema object,
+    instead of the just passing the token, hence had to extract token here from user
+    object here before passing it to header.  */
+    token = token.tokens[0].token;
+
+    res.header('x-auth', token).send(user);  /* x-auth indicates custom header */
+    console.log(`Sent Response`);
   }).catch((e) => {
-    res.status(400).send();
-  })
+    console.log(`I'm now in catch block`);
+    res.status(400).send(e);
+  });
 });
 
 // Server port configuration
-app.listen(3000, () => {
-  console.log('Express Started on port 3000');
+app.listen(port, () => {
+  console.log(`Express Started on port ${port}`);
 });
 
 module.exports = {app};
