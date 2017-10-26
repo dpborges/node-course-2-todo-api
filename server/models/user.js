@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 // Create a user Model (pass in the name and an object describing the model)
 //  unique: true ensures user email is unique within the user collection
@@ -43,7 +44,7 @@ var UserSchema = mongoose.Schema({
 // the default behavior of sending back entire user object. Note that both
 // toJSON and generateAuthToken are instance methods.
 
-// Override existing toJSON object
+// Override existing toJSON method that is called by mongoose
 UserSchema.methods.toJSON = function() {
   var user = this;
   var userObject = user.toObject(); /* converts mongoose user to a regular object*/
@@ -92,6 +93,25 @@ UserSchema.statics.findByToken =  function (token) {
     'tokens.access': 'auth'
   });
 };
+
+// Encrypt user password before saving to database. This is called before saving
+// document to database. First parm 'save', is the mongoose save command.
+UserSchema.pre('save', function (next) {
+  var user = this;
+
+  if (user.isModified('password')) {
+      bcrypt.genSalt(10, (err, salt) => {
+          bcrypt.hash(user.password, salt, (err, hash) => {
+            user.password = hash;  /* replaces plain text value in password property */
+            next();
+          });
+      });
+  } else {
+    next();
+  }
+});
+
+
 
 var User = mongoose.model('users', UserSchema);
 
