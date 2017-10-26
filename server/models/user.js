@@ -40,7 +40,8 @@ var UserSchema = mongoose.Schema({
 
 // Below we can define our own instance methods or override certain methods.
 // For example generateAuthToken is a custom method, while toJSON overrides
-// the default behavior of sending back entire user object.
+// the default behavior of sending back entire user object. Note that both
+// toJSON and generateAuthToken are instance methods.
 
 // Override existing toJSON object
 UserSchema.methods.toJSON = function() {
@@ -70,6 +71,26 @@ UserSchema.methods.generateAuthToken = function () {
       return token;
   }); /* normally you can tack on another then here. Instead, we return
      it so we can chain a then in server.js and passing token as result value */
+};
+
+
+// Below we define model method as apposed to an instance method
+UserSchema.statics.findByToken =  function (token) {
+  var User = this;
+  var decoded;
+
+  try {
+    decoded = jwt.verify(token, 'secretval');
+  } catch(e) {
+    return Promise.reject();
+  }
+
+  // Return User object, if token above was verified
+  return User.findOne({
+    '_id': decoded._id, /* assign _id from decoded jwt token in header */
+    'tokens.token': token,
+    'tokens.access': 'auth'
+  });
 };
 
 var User = mongoose.model('users', UserSchema);

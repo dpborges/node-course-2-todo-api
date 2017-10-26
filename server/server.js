@@ -6,6 +6,7 @@ var _ = require('lodash');
 var {mongoose} = require('./db/mongoose');
 var {Todo} = require('./models/todo');
 var {User} = require('./models/user');
+var {authenticate} = require('./middleware/authenticate');
 
 
 var app = express();
@@ -58,23 +59,23 @@ app.get('/todos/:id', (req, res) => {
 });
 
 // Sample HTTP user query request by ID. The :id is send as a param in the request
-app.get('/users/:id', (req, res) => {
-    var id = req.params.id;
-    console.log(`this is the id sent on request ${id}`);
-    if (!ObjectID.isValid(id)) {
-      return console.log(res.status(404));
-    }
-    console.log('ID WAS VALID');
-
-    User.findById(id).then((todo) => {
-      if (!todo) {
-        return res.status(404).send();
-      }
-      res.send({todo});
-    }).catch((e) => {
-      res.status(400).send();
-    });
-});
+// app.get('/users/:id', (req, res) => {
+//     var id = req.params.id;
+//     console.log(`this is the id sent on request ${id}`);
+//     if (!ObjectID.isValid(id)) {
+//       return console.log(res.status(404));
+//     }
+//     console.log('ID WAS VALID');
+//
+//     User.findById(id).then((todo) => {
+//       if (!todo) {
+//         return res.status(404).send();
+//       }
+//       res.send({todo});
+//     }).catch((e) => {
+//       res.status(400).send();
+//     });
+// });
 
 // Route to check user email and password
 app.post('/users', (req, res) => {
@@ -98,6 +99,14 @@ app.post('/users', (req, res) => {
     console.log(`I'm now in catch block`);
     res.status(400).send(e);
   });
+});
+
+// This is a private route. Note that this version of a route takes 3 parameters.
+// 1) the route itself, 2) a middleware function and  3) a call back function.
+// The middle ware function gets callautomatically. When cond it calls next(), which
+// ends up fireing the callback function below.
+app.get('/users/me', authenticate, (req, res) => {
+  res.send(req.user);
 });
 
 // Server port configuration
