@@ -4,25 +4,12 @@ const {ObjectID} = require('mongodb');
 
 const {app} = require('./../server');
 const {Todo} = require('./../models/todo');
+const {todosArray, populateTodos, users, populateUsers} = require('./seed/seed');
 
 
-// Create an array of todo objects to use for testing
-const todosArray = [
-  { _id: new ObjectID(), text: '1st test todo' },
-  { _id: new ObjectID(), text: '2nd test todo' },
-];
-
-// Run some code before running each test case (calls to "it")
-beforeEach((done) => {
-  Todo.remove({}).then( () => {
-    return Todo.insertMany(todosArray);   /* return allows us to chain callbacks and add antoher done */
-  }).then( () => done());// {
-            // Todo.find({}).then((todoDocs) => {
-            //     console.log('This is num todo docs ' + TodoDocs.length);
-            //   }, (e) => done());
-            // done();
-        //  });
-}); /* end beforeEach */
+// Run some code before running each test case (otherwise know as calls  to "it")
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 // Create describe block so you can glance test output on the terminal
 describe('POST / todos', () => {
@@ -105,13 +92,49 @@ describe('GET /todos/:id', () => {
 
     // Test case for querying invalid ObjectID.
     it('should return 404 if non-existant id', (done) => {
-        var hexID = new ObjectID().toHexString();
-
         request(app)
           .get('/todos/1234')
           .expect(404)
           .end(done);
     });
+}); /* end describe GET /todos/:id */
 
+// Test cases for the sign up route
+describe('POST /users', () => {
+    /* creates user if request has valid email and password */
+    it('should create a user', (done) => {
+      var email = 'example@example.com';
+      var password = '123mnb!';
 
-});
+      request(app)
+        .post('/users')
+        .send(email, password) /* sets header name and header value */
+        .expect(200)
+        .expect((res) => {
+            expect(res.headers['x-auth']).toExist();
+            expect(res.body._id).toExist();
+            expect(res.body.email).toBe(email);
+        })
+        .end(done); /* wraps up the test case */
+    });
+    /*return validation errors if request is invalid.  */
+    // it('should return validation errors if request is invalid', (done) => {
+    //   request(app)
+    //     .get('/users/me')
+    //     .expect(401)
+    //     .expect((res) => {
+    //       expect(res.body).toEqual({}); /* use toEqual instead of toBe when comparing objects*/
+    //     })
+    //     .end(done); /* wrap up test case*/
+    // });
+    // /*do not crate test case if email in use.  */
+    // it('should not create test case if email in use', (done) => {
+    //   request(app)
+    //     .get('/users/me')
+    //     .expect(401)
+    //     .expect((res) => {
+    //       expect(res.body).toEqual({}); /* use toEqual instead of toBe when comparing objects*/
+    //     })
+    //     .end(done); /* wrap up test case*/
+    // });
+}); /* end describe POST /users */
